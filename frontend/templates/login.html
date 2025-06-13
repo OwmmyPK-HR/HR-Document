@@ -1,0 +1,16 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="login-container">
+     <img src="{{ url_for('static', filename='images/hrLogo.gif') }}" alt="Logo" class="login-logo">
+    <h1>ระบบจัดการวาระการประชุม</h1>    
+    <p>กรุณาใส่รหัสผ่านเพื่อเข้าสู่ระบบ</p>
+    <form method="POST" action="{{ url_for('auth.login') }}">
+        <div>
+            <label for="password">รหัสผ่าน:</label>
+            <input type="password" id="password" name="password" required>
+        </div>
+        <button type="submit">เข้าสู่ระบบ</button>
+    </form>      
+</div>
+{% endblock %}

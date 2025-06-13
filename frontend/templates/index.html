@@ -1,0 +1,133 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="main-layout">
+    <aside class="left-menu">
+        <h3>เมนู</h3>
+        <form method="GET" action="{{ url_for('main.index') }}">
+            <div class="menu-item">
+                <label for="search">ค้นหา:</label>
+                <input type="text" id="search" name="search" placeholder="ชื่อเรื่อง" value="{{ search_query or '' }}">
+            </div>
+            <div class="menu-item">
+                <label for="start_date">วันที่เริ่มต้น:</label>
+                <input type="date" id="start_date" name="start_date" value="{{ start_date_query or '' }}">
+            </div>
+            <div class="menu-item">
+                <label for="end_date">วันที่สิ้นสุด:</label>
+                <input type="date" id="end_date" name="end_date" value="{{ end_date_query or '' }}">
+            </div>
+            <button type="submit" class="btn btn-secondary">ค้นหา/กรอง</button>
+             {% if search_query or start_date_query or end_date_query %}
+                <a href="{{ url_for('main.index') }}" class="btn btn-sm" style="background-color: #ffc107; color: #333; margin-top:5px; display:inline-block;">ล้างการค้นหา</a>
+            {% endif %}
+        </form>
+        <hr>
+        <div class="menu-item" style="margin-top: auto;">
+             <a href="{{ url_for('auth.logout') }}" class="btn logout-button" style="width: calc(100% - 18px);">ออกจากระบบ</a>
+        </div>
+    </aside>
+
+    <main class="right-content">
+        {% if user_role == 'admin' %}
+        <section class="upload-section">
+            <h2><img src="{{ url_for('static', filename='images/upload_icon.png') }}" alt="" style="width:24px; vertical-align:middle; margin-right:5px; display:none;"> อัปโหลดวาระการประชุมใหม่</h2>
+            <form method="POST" action="{{ url_for('main.upload_agenda') }}" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="meeting_title">ชื่อเรื่องการประชุม:</label>
+                    <input type="text" id="meeting_title" name="meeting_title" required>
+                </div>
+                <div class="form-group">
+                    <label for="meeting_instance">วาระครั้งที่ (เช่น 1/2568):</label>
+                    <input type="text" id="meeting_instance" name="meeting_instance">
+                </div>
+                <div class="form-group">
+                    <label for="meeting_date">วันที่มีการประชุม:</label>
+                    <input type="date" id="meeting_date" name="meeting_date" required>
+                </div>
+
+                <hr>
+                <h4>วาระการประชุมและไฟล์แนบ PDF</h4>
+                <div id="agendaItemsContainer">
+                    </div>
+                <button type="button" id="addAgendaItemBtn" class="btn btn-secondary" style="margin-top:10px; margin-bottom:20px;">+ เพิ่มวาระ</button>
+                <br>
+                <button type="submit" class="btn btn-primary">อัปโหลดการประชุม</button>
+            </form>
+        </section>
+        {% endif %}
+
+        <section class="table-section">
+            <h2><img src="{{ url_for('static', filename='images/list_icon.png') }}" alt="" style="width:24px; vertical-align:middle; margin-right:5px; display:none;">รายการการประชุม</h2>
+            {% if meetings %}
+            <table class="meetings-table">
+                <thead>
+                    <tr>
+                        <th>ลำดับ</th>
+                        <th>ชื่อการประชุม</th>
+                        <th>วาระครั้งที่</th>
+                        <th>วันที่ประชุม</th>
+                        <th>ไฟล์ PDF (วาระ)</th>
+                        {% if user_role == 'admin' %}
+                        <th>การจัดการ</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for meeting in meetings %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ meeting.title }}</td>
+                        <td>{{ meeting.meeting_instance or '-' }}</td>
+                        <td>{{ meeting.meeting_date_str or 'N/A' }}</td>
+                        <td>
+                            {% if meeting.agenda_items %}
+                            <ul>
+                                {% for item in meeting.agenda_items %}
+                                <li>
+                                    <strong >
+                                        วาระที่   {{ item.item_number }}:
+                                    </strong>
+                                     <span style="font-family: 'THSarabunNew', 'SegoeUIVF', sans-serif; font-size: 20px; color: #1565c0;">
+                                                {{ item.agenda_title_th or item.original_filename }}
+                                    </span>                                   
+                                    (<a href="#" class="view-pdf-btn" data-pdf-url="{{ url_for('main.view_pdf', filename=item.stored_filename) }}">ดู PDF</a>                                    
+                                    | <a href="{{ url_for('main.download_pdf', filename=item.stored_filename) }}" class="download-link">ดาวน์โหลด</a>)
+                                    {% if user_role == 'admin' %}
+                                    <form method="POST" action="{{ url_for('main.delete_agenda_item', item_id=item.item_id) }}" class="delete-form" style="display:inline;">
+                                        <button type="submit" class="btn btn-danger btn-sm" style="margin-left:5px;">ลบวาระนี้</button>
+                                    </form>
+                                    {% endif %}
+                                </li>
+                                {% endfor %}
+                            </ul>
+                            {% else %}
+                            ไม่มีไฟล์แนบ
+                            {% endif %}
+                        </td>
+                        {% if user_role == 'admin' %}
+                        <td class="action-buttons">
+                            <form method="POST" action="{{ url_for('main.delete_meeting', meeting_id=meeting.meeting_id) }}" class="delete-form">
+                                <button type="submit" class="btn btn-danger">ลบการประชุมนี้</button>
+                            </form>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>ยังไม่มีรายการการประชุม</p>
+            {% endif %}
+        </section>
+    </main>
+</div>
+
+<div id="pdfViewerModal" class="pdf-modal">
+    <div class="pdf-modal-content">
+        <span class="close-modal-btn">&times;</span>
+        <iframe id="pdfFrame" src="" width="100%" height="100%" frameborder="0"></iframe>
+    </div>
+</div>
+
+{% endblock %}
