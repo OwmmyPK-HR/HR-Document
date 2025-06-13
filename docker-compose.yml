@@ -1,0 +1,25 @@
+# docker-compose.yml
+
+version: '3.8'
+
+services:
+  web:
+    build: .
+    container_name: flask_app_container
+    expose:
+      - "5000"
+    volumes:
+      - .:/app # <-- บรรทัดนี้ทำให้แอป Flask เห็นโค้ด
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx_proxy_container
+    ports:
+      - "80:80"
+    volumes:
+      # --- เพิ่มบรรทัดนี้เข้าไป ---
+      - .:/app  # <-- บรรทัดนี้ทำให้ Nginx เห็นโค้ดและไฟล์ static/css/js ด้วย
+      # ------------------------
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - web
